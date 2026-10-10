@@ -1,0 +1,77 @@
+[
+  {
+    "id": "q_001",
+    "topic": "Programming",
+    "type": "MCQ",
+    "question": "Which of the following sorting algorithms has the lowest worst-case time complexity?",
+    "options": {
+      "A": "Quick Sort",
+      "B": "Merge Sort",
+      "C": "Bubble Sort",
+      "D": "Insertion Sort"
+    },
+    "correct_answers": ["B"],
+    "explanation": "Merge sort has a worst-case time complexity of O(n log n), while Quick Sort, Bubble Sort, and Insertion Sort all have a worst-case time complexity of O(n^2).",
+    "source": "GATE 2018"
+  },
+  {
+    "id": "q_002",
+    "topic": "Computer Networks",
+    "type": "MCQ",
+    "question": "Which of the following protocols uses both TCP and UDP?",
+    "options": {
+      "A": "FTP",
+      "B": "SMTP",
+      "C": "Telnet",
+      "D": "DNS"
+    },
+    "correct_answers": ["D"],
+    "explanation": "DNS uses UDP for small queries and responses, and TCP for zone transfers and queries larger than 512 bytes.",
+    "source": "GATE 2020"
+  },
+  {
+    "id": "q_003",
+    "topic": "Operating Systems",
+    "type": "MSQ",
+    "question": "Which of the following conditions are necessary for deadlock to occur?",
+    "options": {
+      "A": "Mutual Exclusion",
+      "B": "Hold and Wait",
+      "C": "No Preemption",
+      "D": "Circular Wait"
+    },
+    "correct_answers": ["A", "B", "C", "D"],
+    "explanation": "According to Coffman's conditions, all four are necessary and sufficient for a deadlock to occur: Mutual Exclusion, Hold and Wait, No Preemption, and Circular Wait.",
+    "source": "GATE 2021"
+  },
+  {
+    "id": "q_004",
+    "topic": "Theory of Computation",
+    "type": "MSQ",
+    "question": "Which of the following languages are regular?",
+    "options": {
+      "A": "L = { a^n b^n | n >= 0 }",
+      "B": "L = { a^n b^m | n, m >= 0 }",
+      "C": "L = { w w^R | w is in {a,b}* }",
+      "D": "L = { w | w contains 'ab' as a substring }"
+    },
+    "correct_answers": ["B", "D"],
+    "explanation": "B is equivalent to a*b* which is regular. D can be represented by the regular expression (a+b)*ab(a+b)*. A is a standard context-free language (requires a stack). C is also context-free (palindromes).",
+    "source": "GATE 2022"
+  },
+  {
+    "id": "q_005",
+    "topic": "Digital Logic",
+    "type": "MCQ",
+    "question": "In a 2-to-1 multiplexer, if data inputs are A and B, and the select line is S, what is the boolean expression for the output Y?",
+    "options": {
+      "A": "Y = S'A + SB",
+      "B": "Y = SA + S'B",
+      "C": "Y = S'A' + SB'",
+      "D": "Y = S(A+B)"
+    },
+    "correct_answers": ["A"],
+    "explanation": "A 2-to-1 MUX selects input A when S=0 (S') and input B when S=1 (S). Thus the output is Y = S'A + SB.",
+    "source": "GATE 2019"
+  }
+]
