@@ -118,8 +118,35 @@ async def start_topic_practice(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.message.reply_text("No questions found for this topic yet!")
         return
 
+    # Track asked questions to prevent repetition
+    if 'asked_questions' not in context.user_data:
+        context.user_data['asked_questions'] = {}
+
+    asked = context.user_data['asked_questions'].get(topic, [])
+
+    # Filter out already asked questions
+    eligible_questions = [q for q in topic_questions if q['id'] not in asked]
+
+    # If all questions have been asked, reset the cycle
+    if not eligible_questions:
+        asked = []
+        eligible_questions = list(topic_questions)
+        # Avoid repeating the very last question if possible
+        last_asked = context.user_data.get('last_asked_question')
+        if last_asked and len(eligible_questions) > 1:
+            eligible_questions = [q for q in eligible_questions if q['id'] != last_asked]
+
     # Select a random question for practice
-    question = random.choice(topic_questions)
+    question = random.choice(eligible_questions)
+
+    # Update tracking
+    asked.append(question['id'])
+    context.user_data['asked_questions'][topic] = asked
+    context.user_data['last_asked_question'] = question['id']
+
+    # Flag single-question topic
+    context.user_data['single_question_topic'] = (len(topic_questions) == 1)
+
     context.user_data['practice_mode'] = f"topic_{topic}"
     await send_question(update, context, question)
 
@@ -180,9 +207,15 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             selections.append(opt)
         context.user_data['msq_selections'] = selections
 
-        # Update inline keyboard to show selected state (simplistic approach for now)
-        # Ideally, we would add a ✅ to the button text, but doing simple answer collection first
-        await query.message.reply_text(f"Selected: {', '.join(sorted(selections))}")
+        # Update inline keyboard to show selected state with ✅
+        keyboard = []
+        for q_opt, desc in current_q['options'].items():
+            btn_text = f"✅ Option {q_opt}" if q_opt in selections else f"Option {q_opt}"
+            keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"msq_{q_opt}")])
+
+        keyboard.append([InlineKeyboardButton("Submit Answer", callback_data="msq_submit")])
+
+        await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     user_answers = []
@@ -329,10 +362,17 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result_text += f"*Explanation:*\n{current_q['explanation']}\n\n"
     result_text += f"_Source: {current_q['source']}_"
 
+    is_single_question = context.user_data.get('single_question_topic', False)
+    if is_single_question:
+        result_text += "\n\n_Note: This is the only question currently available for this topic._"
+
     next_cb = context.user_data.get('practice_mode', f"topic_{current_q['topic']}")
 
-    keyboard = [[InlineKeyboardButton("Next Question", callback_data=next_cb)],
-                [InlineKeyboardButton("Main Menu", callback_data="menu_main")]]
+    keyboard = []
+    if not is_single_question:
+        keyboard.append([InlineKeyboardButton("Next Question", callback_data=next_cb)])
+    keyboard.append([InlineKeyboardButton("Main Menu", callback_data="menu_main")])
+
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.message.edit_text(result_text, reply_markup=reply_markup, parse_mode="Markdown")
