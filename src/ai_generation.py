@@ -1,28 +1,38 @@
 import json
-import google.generativeai as genai
+import re
+from google import genai
 from src.config import GEMINI_API_KEY
 from src.logger import get_logger
 
 logger = get_logger(__name__)
 
+client = None
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
-def generate_ai_question(topic: str) -> dict:
+def generate_ai_question(topic: str, history: list = None) -> dict:
     """
     Generates a new GATE CSE style question using Gemini API.
     Returns a dictionary matching the structure of questions.json.
     """
-    if not GEMINI_API_KEY:
+    if not GEMINI_API_KEY or not client:
         logger.warning("Gemini API key not set. Cannot generate AI questions.")
         return None
 
-    model = genai.GenerativeModel('gemini-pro')
+    model = 'gemini-2.5-flash'
+
+    history_str = ""
+    if history:
+        history_str = "Avoid generating questions similar to these concepts:\n"
+        for i, q in enumerate(history[-5:]): # Limit to last 5 to save tokens
+            history_str += f"- {q.get('question', '')[:100]}...\n"
 
     prompt = f"""
     Generate a challenging, original GATE CSE style question for the topic: {topic}.
     It can be either an MCQ (1 correct answer) or an MSQ (multiple correct answers).
     Ensure the question is mathematically and conceptually sound.
+
+    {history_str}
 
     Return ONLY a valid JSON object with exactly this structure:
     {{
@@ -38,14 +48,14 @@ def generate_ai_question(topic: str) -> dict:
         }},
         "correct_answers": ["A"] (or ["A", "C"] for MSQ),
         "explanation": "Detailed explanation of why the correct options are correct and others are wrong.",
-        "source": "AI-Generated"
+        "source": "AI-Generated",
+        "difficulty": "Easy" (or "Medium", "Hard")
     }}
     Do not include markdown formatting like ```json in the output, just the raw JSON object.
     """
 
-    import re
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(model=model, contents=prompt)
         # Attempt to parse the response as JSON
         text_response = response.text.strip()
 
@@ -60,10 +70,17 @@ def generate_ai_question(topic: str) -> dict:
         question_data = json.loads(json_str.strip())
 
         # Basic validation
-        assert "question" in question_data
-        assert "options" in question_data
-        assert "correct_answers" in question_data
-        assert question_data["source"] == "AI-Generated"
+        assert "question" in question_data, "Missing 'question' field"
+        assert "options" in question_data, "Missing 'options' field"
+        assert "correct_answers" in question_data, "Missing 'correct_answers' field"
+        assert "explanation" in question_data, "Missing 'explanation' field"
+        assert "topic" in question_data, "Missing 'topic' field"
+        assert "difficulty" in question_data, "Missing 'difficulty' field"
+        assert question_data.get("source") == "AI-Generated", "Source must be AI-Generated"
+
+        # Verify correct_answers are valid keys in options
+        for ans in question_data["correct_answers"]:
+            assert ans in question_data["options"], f"Correct answer '{ans}' not found in options"
 
         return question_data
 

@@ -93,15 +93,22 @@ async def start_ai_practice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     topic = query.data.split("ai_")[1]
     await query.message.edit_text(f"⏳ Generating a unique AI question for {topic}...\nPlease wait.")
 
-    question = generate_ai_question(topic)
+    ai_history = context.user_data.get('ai_history', [])
+    question = generate_ai_question(topic, history=ai_history)
+
     if question:
+        ai_history.append(question)
+        context.user_data['ai_history'] = ai_history
         # Save mode to context so handle_answer knows what to show next
         context.user_data['practice_mode'] = f"ai_{topic}"
         await send_question(update, context, question)
     else:
         await query.message.edit_text(
-            "Failed to generate AI question. Please check API key or try again.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="menu_main")]])
+            "Failed to generate AI question. Please check API key or try again.\nYou can still practice from the normal question bank.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(f"Practice {topic} (Normal)", callback_data=f"topic_{topic}")],
+                [InlineKeyboardButton("Back to Menu", callback_data="menu_main")]
+            ])
         )
 
 async def start_topic_practice(update: Update, context: ContextTypes.DEFAULT_TYPE):
